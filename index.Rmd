@@ -1,0 +1,273 @@
+---
+title       : Lifetime Income Estimator
+subtitle    : A Data Products Production
+author      : Wayne Carriker
+job         : 
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : []            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+knit        : slidify::knit2slides
+---
+
+## It's Not About the Money, Money, Money...*
+
+### OK, so actually it is about the money.
+
+### Do you wonder about how much you can make?
+
+### Are you curious about the value of your education?
+
+### Do you believe women only earn 77 cents for every dollar that men earn?
+
+### What do you think Data Science can do for you?
+
+### Fire up the Lifetime Income Estimator and find out!
+
+* Apologies to Jessie J...
+
+---
+
+## So What Does It Do?
+
+The Lifetime Income Estimator uses US Census data from 1991 to 2014 to track
+income by gender, education level, and age group. Based on your inputs, it
+creates an appropriate subset of the data and then fits a linear model through
+the years of data in order to extrapolate potential earnings over your
+lifetime.
+
+This provides an extraordinarily accurate model of your precise earning
+potential. That, of course, is a total fabrication. What it does create is an
+estimate of the median income of someone in your situation in the United
+States. So, while you should NOT assume that the estimator can actually predict
+your precise earning potential, it can provide some insight into the factors
+that can influence your earning potential.
+
+---
+
+## Let's Look at an Example
+
+Let's see what a 35 year old (in 2015) female with a Master's degree is likely
+to earn working from 2005 (when she was 25) to 2030 (when she retires early at
+50.) There isn't enough room in these slides to show the entire algorithm, but
+it goes something like:
+
+```{r eval=FALSE}
+data <- read.csv("../census.csv")
+rows <- (data$Gender == "Female") & (data$Education == "Master's")
+years <- data$Year[rows]; ages <- data$Ages[rows]; incomes <- data$Income[rows]
+mdata <- data.frame(years, ages, incomes); fit <- lm(incomes ~ ., data = mdata)
+
+years <- seq(from = 2005, to = 2030)
+ages_yr <- seq(from = 25, to = 50); ages <- sapply(ages_yr, age_groups)
+test <- data.frame(years, ages); earnings <- predict(fit, newdata = test)
+sum(earnings)
+```
+
+The actual algorithm (not echoed here) produces:
+```{r echo=FALSE}
+data <- read.csv("../census.csv")
+current_year <- 2015
+age <- 35
+
+# build factor lists to allow converting inputs to factors
+ages_list <- unique(data$Age_Group)
+education_list <- unique(data$Education_Level)
+gender_list <- unique(data$Gender)
+
+# define a function to get from a specific age to an age group
+# needed to convert age at different working years to age groups
+age_groups <- function(age) {
+    rval <- as.factor(ages_list[6])
+    if (age < 65) rval <- as.factor(ages_list[5])
+    if (age < 55) rval <- as.factor(ages_list[4])
+    if (age < 45) rval <- as.factor(ages_list[3])
+    if (age < 35) rval <- as.factor(ages_list[2])
+    if (age < 25) rval <- as.factor(ages_list[1])
+    
+    rval
+}
+
+# define a function that ensures that the test set of age groups is
+# fully covered by the model set
+ensure_overlap <- function(m_ages, t_ages) {
+    m_int <- as.integer(m_ages)
+    t_int <- as.integer(t_ages)
+    if (min(t_int) < min(m_int) || max(t_int) > max(m_int)) {
+        elements1 <- (t_int < min(m_int))
+        elements2 <- (t_int > max(m_int))
+        t_int[elements1] <- min(m_int)
+        t_int[elements2] <- max(m_int)
+        t_ages <- ages_list[t_int]
+    }
+    t_ages
+}
+
+rows <- (data$Gender == gender_list[2]) & 
+        (data$Education_Level == education_list[5]) & 
+        (!is.na(data$Income))
+years <- data$Year[rows]
+ages <- data$Age_Group[rows]
+m_ages <- ages
+incomes <- data$Income[rows]
+mdata <- data.frame(years, ages, incomes)
+fit <- lm(incomes ~ ., data = mdata)
+
+low <- 2005
+high <- 2030
+years <- seq(from = low, to = high)
+age_low <- age - (current_year - low)
+age_high <- age - (current_year - high)
+ages_yr <- seq(from = age_low, to = age_high)
+ages <- sapply(ages_yr, age_groups)
+ages <- ensure_overlap(m_ages, ages)
+test <- data.frame(years, ages)
+    
+earnings <- predict(fit, newdata = test)
+    
+sum(earnings)
+```
+
+---
+
+## If Only She Had Completed Data Science...
+
+According to the census data, the best thing she could have done was actually
+complete a professional degree. Let's assume that took an extra 3 years,
+reducing her years of employment to 2008 to 2030, but earning her an extra
+$881,807...
+
+```{r echo=FALSE}
+data <- read.csv("../census.csv")
+current_year <- 2015
+age <- 35
+
+# build factor lists to allow converting inputs to factors
+ages_list <- unique(data$Age_Group)
+education_list <- unique(data$Education_Level)
+gender_list <- unique(data$Gender)
+
+# define a function to get from a specific age to an age group
+# needed to convert age at different working years to age groups
+age_groups <- function(age) {
+    rval <- as.factor(ages_list[6])
+    if (age < 65) rval <- as.factor(ages_list[5])
+    if (age < 55) rval <- as.factor(ages_list[4])
+    if (age < 45) rval <- as.factor(ages_list[3])
+    if (age < 35) rval <- as.factor(ages_list[2])
+    if (age < 25) rval <- as.factor(ages_list[1])
+    
+    rval
+}
+
+# define a function that ensures that the test set of age groups is
+# fully covered by the model set
+ensure_overlap <- function(m_ages, t_ages) {
+    m_int <- as.integer(m_ages)
+    t_int <- as.integer(t_ages)
+    if (min(t_int) < min(m_int) || max(t_int) > max(m_int)) {
+        elements1 <- (t_int < min(m_int))
+        elements2 <- (t_int > max(m_int))
+        t_int[elements1] <- min(m_int)
+        t_int[elements2] <- max(m_int)
+        t_ages <- ages_list[t_int]
+    }
+    t_ages
+}
+
+rows <- (data$Gender == gender_list[2]) & 
+        (data$Education_Level == education_list[6]) & 
+        (!is.na(data$Income))
+years <- data$Year[rows]
+ages <- data$Age_Group[rows]
+m_ages <- ages
+incomes <- data$Income[rows]
+mdata <- data.frame(years, ages, incomes)
+fit <- lm(incomes ~ ., data = mdata)
+
+low <- 2008
+high <- 2030
+years <- seq(from = low, to = high)
+age_low <- age - (current_year - low)
+age_high <- age - (current_year - high)
+ages_yr <- seq(from = age_low, to = age_high)
+ages <- sapply(ages_yr, age_groups)
+ages <- ensure_overlap(m_ages, ages)
+test <- data.frame(years, ages)
+    
+earnings <- predict(fit, newdata = test)
+    
+sum(earnings)
+```
+
+But, that would also mean 3 more years of school and a job that she doesn't
+enjoy. Instead, she can complete the Data Science specialization this year and
+earn an extra $225,000 doing what she loves!
+
+```{r echo=FALSE}
+data <- read.csv("../census.csv")
+current_year <- 2015
+age <- 35
+
+# build factor lists to allow converting inputs to factors
+ages_list <- unique(data$Age_Group)
+education_list <- unique(data$Education_Level)
+gender_list <- unique(data$Gender)
+
+# define a function to get from a specific age to an age group
+# needed to convert age at different working years to age groups
+age_groups <- function(age) {
+    rval <- as.factor(ages_list[6])
+    if (age < 65) rval <- as.factor(ages_list[5])
+    if (age < 55) rval <- as.factor(ages_list[4])
+    if (age < 45) rval <- as.factor(ages_list[3])
+    if (age < 35) rval <- as.factor(ages_list[2])
+    if (age < 25) rval <- as.factor(ages_list[1])
+    
+    rval
+}
+
+# define a function that ensures that the test set of age groups is
+# fully covered by the model set
+ensure_overlap <- function(m_ages, t_ages) {
+    m_int <- as.integer(m_ages)
+    t_int <- as.integer(t_ages)
+    if (min(t_int) < min(m_int) || max(t_int) > max(m_int)) {
+        elements1 <- (t_int < min(m_int))
+        elements2 <- (t_int > max(m_int))
+        t_int[elements1] <- min(m_int)
+        t_int[elements2] <- max(m_int)
+        t_ages <- ages_list[t_int]
+    }
+    t_ages
+}
+
+rows <- (data$Gender == gender_list[2]) & 
+        (data$Education_Level == education_list[5]) & 
+        (!is.na(data$Income))
+years <- data$Year[rows]
+ages <- data$Age_Group[rows]
+m_ages <- ages
+incomes <- data$Income[rows]
+mdata <- data.frame(years, ages, incomes)
+fit <- lm(incomes ~ ., data = mdata)
+
+low <- 2005
+high <- 2030
+years <- seq(from = low, to = high)
+age_low <- age - (current_year - low)
+age_high <- age - (current_year - high)
+ages_yr <- seq(from = age_low, to = age_high)
+ages <- sapply(ages_yr, age_groups)
+ages <- ensure_overlap(m_ages, ages)
+test <- data.frame(years, ages)
+    
+earnings <- predict(fit, newdata = test)
+adds <- years > current_year
+earnings[adds] <- earnings[adds] + 15000
+    
+sum(earnings)
+```
+
+Check it out at https://carriker.shinyapps.io/DataProducts
